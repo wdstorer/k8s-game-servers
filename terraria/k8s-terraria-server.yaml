@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terraria-server
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: terraria-server
+  template:
+    metadata:
+      labels:
+        app: terraria-server
+    spec:
+      containers:
+      - image: debian:bullseye-slim
+        imagePullPolicy: Always
+        tty: true
+        name: terraria-server
+        workingDir: /usr/src/terraria
+        command: ["./TerrariaServer.bin.x86_64"]
+        args: ["-config", "./terraria-server.config"]
+        ports:
+        - containerPort: 7777
+          protocol: TCP
+        resources: {}
+        volumeMounts:
+        - mountPath: /usr/src/terraria
+          name: app-volume
+      volumes:
+        - hostPath:
+            path: /srv/k8s_nfs/terraria-server
+            type: Directory
+          name: app-volume
+      nodeSelector:
+        instance-type: performance
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: terraria-server
+  namespace: default
+spec:
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - port: 7777
+    protocol: TCP
+    targetPort: 7777
+  selector:
+    app: terraria-server
+  type: NodePort

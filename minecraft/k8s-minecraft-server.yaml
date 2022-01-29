@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minecraft-server
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minecraft-server
+  template:
+    metadata:
+      labels:
+        app: minecraft-server
+    spec:
+      containers:
+      - image: openjdk:8-jre-slim-bullseye
+        imagePullPolicy: Always
+        name: minecraft-server
+        workingDir: /usr/src/minecraft
+        command: ["java"]
+        args: ["-Xms2G", "-Xmx2G", "-jar", "paper-1.18.1-164.jar"]
+        ports:
+        - containerPort: 25565
+          protocol: TCP
+        resources: {}
+        volumeMounts:
+        - mountPath: /usr/src/minecraft
+          name: app-volume
+      volumes:
+        - hostPath:
+            path: /srv/k8s_nfs/minecraft-server
+            type: Directory
+          name: app-volume
+      nodeSelector:
+        instance-type: performance
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: minecraft-server
+  namespace: default
+spec:
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - port: 25565
+    protocol: TCP
+    targetPort: 25565
+  selector:
+    app: minecraft-server
+  type: NodePort
